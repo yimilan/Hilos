@@ -53,11 +53,11 @@ namespace Decrypting_CMD
 		/*
 		 * @param Metodo crackingThread
 		 */
-		public static void crackingThread(int thread,ref bool active, string password, ref string result) {
-			bool end = false;
-			while (!end) {
-				if (active) {
-					result = generarHash(password);
+		public static void crackingThread(int thread,ref bool[] active, ref string[] password, ref string[] result, ref bool[] end) {
+			Console.WriteLine (password[thread]);
+			while (!end[thread]) {
+				if (active[thread]) {
+					result[thread] = generarHash(password[thread]);
 				} else {
 					Thread.Sleep(500); // ...
 				}
@@ -67,20 +67,38 @@ namespace Decrypting_CMD
 		/*
 		 * @param Metodo main del ataque
 		 */
+
+		static bool[] active = new bool[MAX_THREADS];	
+		static bool[] end = new bool[MAX_THREADS];
+		static string[] password = new string[MAX_THREADS];
+		static string[] result = new string[MAX_THREADS];
+
 		public void processes(){
 			read ();
 			init ();
 			Console.Clear ();
-			bool[] active = new bool[MAX_THREADS];	
+			/*bool[] active = new bool[MAX_THREADS];	
+			bool[] end = new bool[MAX_THREADS];
 			string[] password = new string[MAX_THREADS];
-			string[] result = new string[MAX_THREADS];
+			string[] result = new string[MAX_THREADS];*/
 			Thread[] threads = new Thread[MAX_THREADS];
 			for (int thread = 0; thread < cantAtaq; thread++) {
-				threads[thread]= new Thread (new ThreadStart (() =>crackingThread(thread,ref active[thread], password[thread],ref result[thread])));
+				//threads[thread]= new Thread (new ThreadStart (() =>crackingThread(thread,ref active,ref password,ref result, ref end)));
+
+				threads[thread]= new Thread (new ThreadStart (() =>{
+					Console.WriteLine (password[thread]);
+					while (!end[thread]) {
+						if (active[thread]) {
+							result[thread] = generarHash(password[thread]);
+						} else {
+							Thread.Sleep(500); // ...
+						}
+					}
+				}));
 				threads[thread].Start();
 			}
 			bool end1 = false;
-			while (end1 != true) {
+			while (end1 != true) {	
 				for (int thread = 0; thread < cantAtaq; thread++) {
 					if (active[thread] == false) {
 						if (password[thread] == "" || active[thread] == false) {							
@@ -106,15 +124,6 @@ namespace Decrypting_CMD
 					Thread.Sleep (500);
 				}
 			}
-			// Generar Threads y lanzar con variables compartidas
-
-
-			/*for (int thread = 0; thread < cantAtaq; thread++) {
-				// Lanzar Threads
-				threads[thread]= new Thread (new ThreadStart (() =>crackingThread(thread, active[thread], password[thread], result[thread])));
-				threads[thread].Start();
-			}*/
-
 			for (int i = 0; i < cant; i++) {
 				Console.WriteLine ("Hash: " + this.paswordHash[i] + ", contraseña: " + this.passwords[i]);
 			}
@@ -148,12 +157,12 @@ namespace Decrypting_CMD
 		/*
         * @param Metodo para crear diccionario de ataque
         */
-	
 
-			/*
-        * @param Metodo para apertura y lectura de archivo
-         * construcion de ArrayList
-        */
+
+		/*
+		* @param Metodo para apertura y lectura de archivo
+		* construcion de ArrayList
+		*/
 		public void read()
 		{
 			string line;
@@ -164,10 +173,10 @@ namespace Decrypting_CMD
 			System.IO.StreamReader file = new System.IO.StreamReader(@"user.txt");
 			while((line = file.ReadLine()) != null)
 			{
-				
-			Console.WriteLine ("Encrypting: " + line);
-			breakString (line);
-			cant++;
+
+				Console.WriteLine ("Encrypting: " + line);
+				breakString (line);
+				cant++;
 
 
 				//Console.WriteLine ("Cargado hash: " + line);
@@ -177,145 +186,145 @@ namespace Decrypting_CMD
 			cantAtaq = Convert.ToInt32(Console.ReadLine ());
 		}
 
-			/*
+		/*
         * @param Metodo para Romper Lineas
         */
-			public void breakString(string line){
-				char[] delimit = new char[] {':'};
-				int cont = 0;
-				foreach (String subStr in line.Split(delimit)) {
-					if (cont == 2) {					
-						Console.WriteLine("Password: " + subStr);
-						paswordHash [cant] = subStr;
+		public void breakString(string line){
+			char[] delimit = new char[] {':'};
+			int cont = 0;
+			foreach (String subStr in line.Split(delimit)) {
+				if (cont == 2) {					
+					Console.WriteLine("Password: " + subStr);
+					paswordHash [cant] = subStr;
 
-					} else {
-						if (cont == 0) {
-							Console.WriteLine ("User: " + subStr);
-							user [cant] = subStr;
-						}
+				} else {
+					if (cont == 0) {
+						Console.WriteLine ("User: " + subStr);
+						user [cant] = subStr;
 					}
-					cont++;
 				}
-				Console.WriteLine ();
+				cont++;
 			}
-			/*
+			Console.WriteLine ();
+		}
+		/*
         * @param Metodo para imprimir contendo user
         */
-			public void imprimir(){
-				for (int i = 0; i < cant; i++)
-				{
-					Console.Write (user [i] + "\t");
-					//Console.WriteLine (paswordHash[i]);
-				}
+		public void imprimir(){
+			for (int i = 0; i < cant; i++)
+			{
+				Console.Write (user [i] + "\t");
+				//Console.WriteLine (paswordHash[i]);
 			}
-			/*
+		}
+		/*
         * @param Metodo para comparar
         */
-			public bool compare(String passMD5, ref int pos){
-				for (int i = 0; i < cant; i++) {
-					//Console.WriteLine (paswordHash [i] + " " + passMD5);
-					if(String.Compare(paswordHash[i],passMD5) == 0){
-						pos = i;
-						return true;
-					}
+		public bool compare(String passMD5, ref int pos){
+			for (int i = 0; i < cant; i++) {
+				//Console.WriteLine (paswordHash [i] + " " + passMD5);
+				if(String.Compare(paswordHash[i],passMD5) == 0){
+					pos = i;
+					return true;
 				}
-				return false;
 			}
+			return false;
+		}
 
-			/*
+		/*
         * @param Metodo para mostrar user Crack
         */
-			public void look(String pass, int pos){
+		public void look(String pass, int pos){
 
-				Console.WriteLine (user[pos] + "\t" + pass);
-				//Console.WriteLine ("_____________________________________________");
+			Console.WriteLine (user[pos] + "\t" + pass);
+			//Console.WriteLine ("_____________________________________________");
 
+		}
+
+		public string getNewWord(){
+			String dicc;
+			dicc = diccionario ();
+			//Console.WriteLine (dicc);
+			if(String.Compare(dicc, Dic)==0){
+				palabra[controlChar - 1] = 'a';
+				Dic = Dic + "Z";
 			}
+			return dicc;
+		}
 
-			public string getNewWord(){
-				String dicc;
-				dicc = diccionario ();
-				//Console.WriteLine (dicc);
-				if(String.Compare(dicc, Dic)==0){
-					palabra[controlChar - 1] = 'a';
-					Dic = Dic + "Z";
-				}
-				return dicc;
+		public void init(){
+			for (int i = 0; i < MAX_CHARS; i++) {
+				palabra[i] = '\0';
 			}
+			palabra[0] = cambChar;
+		}
 
-			public void init(){
-				for (int i = 0; i < MAX_CHARS; i++) {
-					palabra[i] = '\0';
-				}
-				palabra[0] = cambChar;
+		public String diccionario(){
+			aum = false;
+			palabra[controlChar] = cambChar;
+			string s = new string(palabra);
+			if (palabra [controlChar] == z) {
+				//aum = true;
+				cambChar = A;					
+			} 
+			if (palabra [controlChar] == Z) {
+				cambChar = a;
+				cambio (controlChar);
+				aum = true;
+			} 
+			if (String.Compare (s, D) == 0) {
+				D = D + "Z";
+				controlChar++;
 			}
-
-			public String diccionario(){
-				aum = false;
-				palabra[controlChar] = cambChar;
-				string s = new string(palabra);
-				if (palabra [controlChar] == z) {
-					//aum = true;
-					cambChar = A;					
-				} 
-				if (palabra [controlChar] == Z) {
-					cambChar = a;
-					cambio (controlChar);
-					aum = true;
-				} 
-				if (String.Compare (s, D) == 0) {
-					D = D + "Z";
-					controlChar++;
-				}
-				if (aum == false) {
-					cambChar++;
-				}
-				return s;
+			if (aum == false) {
+				cambChar++;
 			}
+			return s;
+		}
 
-			public void cambio(int cC){
-				if (palabra [cC] == Z) {
-					palabra [cC] = a;
+		public void cambio(int cC){
+			if (palabra [cC] == Z) {
+				palabra [cC] = a;
 
-					if (cC > 0) {
-						if (palabra [cC - 1] == Z) {
-							palabra [cC - 1] = a;
-							//............................
-							if (cC > 1) {
-								if (palabra [cC - 2] == Z) {
-									palabra [cC - 2] = a;
-									//..........................................
-									if (cC > 2) {
-										if (palabra [cC - 3] == Z) {
-											palabra [cC - 3] = a;
+				if (cC > 0) {
+					if (palabra [cC - 1] == Z) {
+						palabra [cC - 1] = a;
+						//............................
+						if (cC > 1) {
+							if (palabra [cC - 2] == Z) {
+								palabra [cC - 2] = a;
+								//..........................................
+								if (cC > 2) {
+									if (palabra [cC - 3] == Z) {
+										palabra [cC - 3] = a;
+									} else {
+										if (palabra [cC - 3] == z) {
+											palabra [cC - 3] = A;
 										} else {
-											if (palabra [cC - 3] == z) {
-												palabra [cC - 3] = A;
-											} else {
-												palabra [cC - 3]++;
-											}
+											palabra [cC - 3]++;
 										}
 									}
-									//..........................................
+								}
+								//..........................................
+							} else {
+								if (palabra [cC - 2] == z) {
+									palabra [cC - 2] = A;
 								} else {
-									if (palabra [cC - 2] == z) {
-										palabra [cC - 2] = A;
-									} else {
-										palabra [cC - 2]++;
-									}
+									palabra [cC - 2]++;
 								}
 							}
-							//................................
+						}
+						//................................
+					} else {
+						if (palabra [cC - 1] == z) {
+							palabra [cC - 1] = A;
 						} else {
-							if (palabra [cC - 1] == z) {
-								palabra [cC - 1] = A;
-							} else {
-								palabra [cC - 1]++;
-							}
+							palabra [cC - 1]++;
 						}
 					}
 				}
-
 			}
+
 		}
 	}
+}
