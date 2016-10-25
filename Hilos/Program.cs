@@ -22,6 +22,15 @@ namespace Decrypting_CMD
 		}
 	}
 
+	public class Data{
+		const int MAX_THREADS = 8;
+		public bool[] active = new bool[MAX_THREADS];	
+		public bool[] end = new bool[MAX_THREADS];
+		public string[] password = new string[MAX_THREADS];
+		public string[] result = new string[MAX_THREADS];
+		public int last_thread = 0;
+	}
+
 	public class Origin{
 		/*
 		 * @param Variables Universales
@@ -53,14 +62,25 @@ namespace Decrypting_CMD
 		/*
 		 * @param Metodo crackingThread
 		 */
-		public static void crackingThread(int thread,ref bool[] active, ref string[] password, ref string[] result, ref bool[] end) {
-			Console.WriteLine (password[thread]);
-			while (!end[thread]) {
-				if (active[thread]) {
-					result[thread] = generarHash(password[thread]);
+		//public void crackingThread(int thread,ref bool[] active, ref string[] password, ref string[] result, ref bool[] end) {
+		public void crackingThread(object data_obj) {
+			Data data = (Data)data_obj;
+			int thread = data.last_thread;
+			data.last_thread++;
+			Console.WriteLine (data.password[thread]);
+			while (!data.end[thread]) {
+				string activestr;
+				if (data.active[thread]) {
+					activestr = "True";
 				} else {
-					Thread.Sleep(500); // ...
+					activestr = "False";
 				}
+				Console.WriteLine("Active: "+activestr);
+				if (data.active[thread]) {
+					data.result[thread] = generarHash(data.password[thread]);
+					data.active[thread] = false;
+				}
+				Thread.Sleep(50); // ...
 			}
 		}
 
@@ -68,12 +88,16 @@ namespace Decrypting_CMD
 		 * @param Metodo main del ataque
 		 */
 
+		/*
 		static bool[] active = new bool[MAX_THREADS];	
 		static bool[] end = new bool[MAX_THREADS];
 		static string[] password = new string[MAX_THREADS];
 		static string[] result = new string[MAX_THREADS];
+		*/
+
 
 		public void processes(){
+			Data data = new Data();
 			read ();
 			init ();
 			Console.Clear ();
@@ -83,9 +107,11 @@ namespace Decrypting_CMD
 			string[] result = new string[MAX_THREADS];*/
 			Thread[] threads = new Thread[MAX_THREADS];
 			for (int thread = 0; thread < cantAtaq; thread++) {
-				//threads[thread]= new Thread (new ThreadStart (() =>crackingThread(thread,ref active,ref password,ref result, ref end)));
+				//threads[thread] = new Thread (new ThreadStart (() => crackingThread(thread, ref active, ref password, ref result, ref end)));
+				threads[thread] = new Thread (new ParameterizedThreadStart(crackingThread));
+				threads [thread].Start (data);
 
-				threads[thread]= new Thread (new ThreadStart (() =>{
+				/*threads[thread]= new Thread (new ThreadStart (() =>{
 					Console.WriteLine (password[thread]);
 					while (!end[thread]) {
 						if (active[thread]) {
@@ -94,26 +120,27 @@ namespace Decrypting_CMD
 							Thread.Sleep(500); // ...
 						}
 					}
-				}));
-				threads[thread].Start();
+				}));*/
+				//threads[thread].Start();
 			}
 			bool end1 = false;
 			while (end1 != true) {	
 				for (int thread = 0; thread < cantAtaq; thread++) {
-					if (active[thread] == false) {
-						if (password[thread] == "" || active[thread] == false) {							
-							if (password[thread] != "") {								
+					if (data.active[thread] == false) {
+						if (data.password[thread] == "" || data.active[thread] == false) {							
+							if (data.password[thread] != "") {								
 								for (int word = 0; word < cant; word++) {									
-									if (this.paswordHash[word] == result[thread]) {
-										this.passwords[word] = password[thread];
+									if (this.paswordHash[word] == data.result[thread]) {
+										this.passwords[word] = data.password[thread];
 										reg++;
 									}
 								}
 							}
 							if (!allWordsCracked()) {	
 								current_word = getNewWord();
-								password[thread] = current_word;
-								active[thread] = true;
+								data.password[thread] = current_word;
+								Console.WriteLine ("Activating thread " + thread);
+								data.active[thread] = true;
 							}
 						}
 					}
@@ -121,7 +148,7 @@ namespace Decrypting_CMD
 				if (allWordsCracked()) {
 					end1 = true;
 				} else {
-					Thread.Sleep (500);
+					Thread.Sleep (50);
 				}
 			}
 			for (int i = 0; i < cant; i++) {
@@ -166,7 +193,7 @@ namespace Decrypting_CMD
 		public void read()
 		{
 			string line;
-			String ruta;
+			//String ruta;
 			//Console.Write ("Introduzca la ruta o arrastre el archivo a la consola para obtener ruta: ");
 			//ruta = Console.ReadLine ();
 			//Console.WriteLine ();
