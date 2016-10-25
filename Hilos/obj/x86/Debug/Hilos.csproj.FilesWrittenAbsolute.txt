@@ -1,0 +1,5 @@
+/home/anyel/Documentos/proy/Hilos/Hilos/obj/x86/Debug/.NETFramework,Version=v4.5.AssemblyAttribute.cs
+/home/anyel/Documentos/proy/Hilos/Hilos/bin/Debug/Hilos.exe.mdb
+/home/anyel/Documentos/proy/Hilos/Hilos/bin/Debug/Hilos.exe
+/home/anyel/Documentos/proy/Hilos/Hilos/obj/x86/Debug/Hilos.exe
+/home/anyel/Documentos/proy/Hilos/Hilos/obj/x86/Debug/Hilos.exe.mdb
