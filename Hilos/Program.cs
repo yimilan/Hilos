@@ -14,7 +14,10 @@ namespace Decrypting_CMD
 		public static void Main (string[] args)
 		{
 			Origin obj = new Origin ();
-			obj.origin ();
+
+			obj.processes ();
+			Console.WriteLine ("#### Crack Exitoso ####");
+			Console.ReadKey ();
 
 		}
 	}
@@ -39,43 +42,24 @@ namespace Decrypting_CMD
 		String D = "Z";
 		String Dic = "Z";
 		int reg = 0;
-
+		int cantAtaq; 
 		protected const int MAX_THREADS = 8;
 		protected const int MAX_CHARS = 4;
 		private string current_word = "";
 		private string[] passwords;
 
 
-		/*
-		 * @param Metodo para administrar todos los procesos
-		 */
-		public void origin(){
-			read ();
-			imprimir ();
-			init ();
-			Console.ReadKey ();
-			Console.Clear ();
-			/*do {
-				String d;
-				d = getNewWord();
-				Console.WriteLine(d);
-			} while(String.Compare (D, "ZZZZZ") != 0);*/
-			processes ();
-			Console.WriteLine ("#### Crack Exitoso ####");
-			Console.ReadKey ();
-		}
 
 		/*
 		 * @param Metodo crackingThread
 		 */
-		public void crackingThread(int thread, bool active, string password, string result) {
+		public static void crackingThread(int thread,ref bool active, string password, ref string result) {
 			bool end = false;
 			while (!end) {
 				if (active) {
 					result = generarHash(password);
-					Console.WriteLine (result);
 				} else {
-					Thread.Sleep(1000); // ...
+					Thread.Sleep(500); // ...
 				}
 			}
 		}
@@ -85,67 +69,59 @@ namespace Decrypting_CMD
 		 */
 		public void processes(){
 			read ();
-			imprimir ();
-			Console.ReadKey ();
+			init ();
 			Console.Clear ();
-
-			// Variables compartidas
-			//int[] threads = new int[MAX_THREADS];
-			bool[] active = new bool[MAX_THREADS];	// Control: Processes pone a true para que thread empiece proceso. Cuando acaba pone a 0 de nuevo.
-			string[] password = new string[MAX_THREADS];	// Hash que se analiza
-			string[] result = new string[MAX_THREADS];	// Resultado.
+			bool[] active = new bool[MAX_THREADS];	
+			string[] password = new string[MAX_THREADS];
+			string[] result = new string[MAX_THREADS];
 			Thread[] threads = new Thread[MAX_THREADS];
-			String[] comm = new string[MAX_CHARS];
-			// Generar Threads y lanzar con variables compartidas
-			for (int thread = 0; thread < MAX_CHARS; thread++) {
-				// Lanzar Threads
-				threads[thread]= new Thread (new ThreadStart (() => crackingThread(thread, active[thread], password[thread], result[thread])));
+			for (int thread = 0; thread < cantAtaq; thread++) {
+				threads[thread]= new Thread (new ThreadStart (() =>crackingThread(thread,ref active[thread], password[thread],ref result[thread])));
 				threads[thread].Start();
 			}
-
-			// Bucle Hack
-			bool end = false;
-			while (end != true) {
-				for (int thread = 0; thread < MAX_CHARS; thread++) {
-					Console.WriteLine (password[thread]);
+			bool end1 = false;
+			while (end1 != true) {
+				for (int thread = 0; thread < cantAtaq; thread++) {
 					if (active[thread] == false) {
-						// Para primera interacción
-						if (comm[thread] == "" || active[thread] == false) {
-							if (comm[thread] != "") {
-								// Recojo resultado
-								// comparamos este hash con todos los hashes que tenemos cargados
-								for (int word = 0; word < cant; word++) {
-									if (this.paswordHash[word] == result[thread]) {	// result es password encriptada
+						if (password[thread] == "" || active[thread] == false) {							
+							if (password[thread] != "") {								
+								for (int word = 0; word < cant; word++) {									
+									if (this.paswordHash[word] == result[thread]) {
 										this.passwords[word] = password[thread];
-										Console.WriteLine (password[thread]);
 										reg++;
 									}
 								}
 							}
-							if (!allWordsCracked()) {	// Aún no hemos encontrado todas las claves, se revisan de this.
-								// Pido palabra a comparar (generada por nosotros)
+							if (!allWordsCracked()) {	
 								current_word = getNewWord();
-								// paso palabra al thread
-								comm[thread] = current_word;
+								password[thread] = current_word;
 								active[thread] = true;
 							}
 						}
 					}
 				}
 				if (allWordsCracked()) {
-					end = true;
+					end1 = true;
 				} else {
-					Thread.Sleep (1000);	// Dormir 1 segundo. Ajustar a lo suficiente como para que más o menos coincida con generar un hash.
-					// No se cómo se hace sleep en C#
+					Thread.Sleep (500);
 				}
 			}
-			Console.WriteLine ("#### Crack Exitoso ####");
+			// Generar Threads y lanzar con variables compartidas
+
+
+			/*for (int thread = 0; thread < cantAtaq; thread++) {
+				// Lanzar Threads
+				threads[thread]= new Thread (new ThreadStart (() =>crackingThread(thread, active[thread], password[thread], result[thread])));
+				threads[thread].Start();
+			}*/
+
 			for (int i = 0; i < cant; i++) {
 				Console.WriteLine ("Hash: " + this.paswordHash[i] + ", contraseña: " + this.passwords[i]);
 			}
 			Console.ReadKey ();
 		}
 
+		//..........................................
 		public bool allWordsCracked(){
 			if (reg == cant) {
 				return true;
@@ -153,24 +129,10 @@ namespace Decrypting_CMD
 			return false;
 		}
 
-		/*private getNewWord(string word) {
-			char a = 'a';
-			char z = 'z';
-			char A = 'A';
-			char Z = 'Z';
-			//char Ñ = 'Ñ'; // No se si está en ASCII, pero bueno
-
-			// tienes una palabra, por ejemplo gdf
-			// buscas de derecha a izquierda, sumar un 1 al caracter de la derecha. Si es z pones A. Si es Z pones a y aumentas el de la izda.
-			// si llego al final, (ZZZ), añado un caracter y reseteo (aaaa)
-			// No se si me explico. Si encuentro a pongo b. Si b pongo c. si z pongo A. Si Z pongo aa si fZ pongo ga, etc.
-			// Si llego a ZZZZ devuelvo null y se acaba. hay que controlar el máximo con la constante.
-		}*/
-
 		/*
         * @param Metodo para cifrar
         */
-		public String generarHash(String bruteF){
+		public static String generarHash(String bruteF){
 			MD5 md5 = MD5CryptoServiceProvider.Create();
 			ASCIIEncoding encoding = new ASCIIEncoding();
 			byte[] stream = null;
@@ -211,6 +173,8 @@ namespace Decrypting_CMD
 				//Console.WriteLine ("Cargado hash: " + line);
 			}
 			file.Close();
+			Console.Write ("Ingrese cantidad de hilos a realizar en el ataque: ");
+			cantAtaq = Convert.ToInt32(Console.ReadLine ());
 		}
 
 			/*
@@ -271,7 +235,7 @@ namespace Decrypting_CMD
 			public string getNewWord(){
 				String dicc;
 				dicc = diccionario ();
-				Console.WriteLine (dicc);
+				//Console.WriteLine (dicc);
 				if(String.Compare(dicc, Dic)==0){
 					palabra[controlChar - 1] = 'a';
 					Dic = Dic + "Z";
